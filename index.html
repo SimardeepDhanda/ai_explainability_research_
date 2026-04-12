@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Graph Understanding Study</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Graph Understanding Study</h1>
+            <p>Please analyze the graph below and answer the questions</p>
+        </div>
+
+        <div class="error-message" id="errorMessage"></div>
+        <div class="success-message" id="successMessage"></div>
+
+        <div class="instruction-box">
+            <p><strong>Instructions:</strong> Please examine the graph carefully. Answer the open-ended questions below, then rate your understanding and confidence using the 1–5 scales.</p>
+        </div>
+
+        <form id="studyForm">
+            <!-- graph Display -->
+            <div class="graph-section">
+                <img id="graphImage" src="" alt="Graph">
+                <div class="graph-title" id="graphTitle"></div>
+            </div>
+
+            <!-- questions section -->
+            <div class="questions-section" id="questionsContainer">
+            </div>
+
+            <!-- standard questions -->
+            <div class="questions-section">
+                <!-- how easyu nderstanding is -->
+                <div class="question-block">
+                    <label class="question-label">How easy was this graph to understand?</label>
+                    <div class="rating-group" id="easeGroup">
+                        <button type="button" class="rating-btn" data-value="1">1</button>
+                        <button type="button" class="rating-btn" data-value="2">2</button>
+                        <button type="button" class="rating-btn" data-value="3">3</button>
+                        <button type="button" class="rating-btn" data-value="4">4</button>
+                        <button type="button" class="rating-btn" data-value="5">5</button>
+                    </div>
+                    <div class="scale-label">1 = Very difficult, 5 = Very easy</div>
+                    <input type="hidden" id="easeRating" name="ease" value="">
+                </div>
+
+                <!-- Confidence qustion-->
+                <div class="question-block">
+                    <label class="question-label">How confident are you in your answers?</label>
+                    <div class="rating-group" id="confidenceGroup">
+                        <button type="button" class="rating-btn" data-value="1">1</button>
+                        <button type="button" class="rating-btn" data-value="2">2</button>
+                        <button type="button" class="rating-btn" data-value="3">3</button>
+                        <button type="button" class="rating-btn" data-value="4">4</button>
+                        <button type="button" class="rating-btn" data-value="5">5</button>
+                    </div>
+                    <div class="scale-label">1 = Not confident, 5 = Very confident</div>
+                    <input type="hidden" id="confidenceRating" name="confidence" value="">
+                </div>
+            </div>
+
+            <!-- Submit Button -->
+            <div class="buttons-section">
+                <button type="submit" class="btn btn-submit" id="submitBtn">Submit Responses</button>
+            </div>
+        </form>
+
+
+
+    <script src="script.js"></script>
+</body>
+</html>
