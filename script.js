@@ -6,7 +6,9 @@ const graphs = [
     { name: 'Error Bars', file: 'images/error_bars.png' },
     { name: 'Gradient Density Interval', file: 'images/gradient_density_interval.png' },
     { name: 'Scatter Rug Plot', file: 'images/scatter_rug_plot.png' },
-    { name: 'Violin Style Distribution', file: 'images/violin_style_distribution.png' }
+    { name: 'Violin Style Distribution', file: 'images/violin_style_distribution.png' },
+    { name: 'HOP Graph', file: 'images/hop.gif' }
+
 ];
 
 //predetermined questions for the study
