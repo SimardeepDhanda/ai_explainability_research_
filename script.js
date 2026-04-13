@@ -139,10 +139,14 @@ function validateResponses() {
 }
 
 function saveResponses() {
-    //save to localStorage
-    localStorage.setItem('studyResponses', JSON.stringify(responses));
-    
+    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyT6Qbs21vt6nPURfM9VxoVxsgtOCsJOAmyEBBl63-scvx8n4cjzxvdFb5gNrpbRFx5/exec";
 
+    fetch(WEB_APP_URL, {
+        method: "POST",
+        body: JSON.stringify(responses)
+    });
+
+    localStorage.setItem('studyResponses', JSON.stringify(responses));
 }
 
 function showSuccessMessage() {
