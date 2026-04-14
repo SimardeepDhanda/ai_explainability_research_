@@ -1,33 +1,32 @@
 from flask import Flask, send_from_directory, request, jsonify, render_template_string
-import sqlite3
+import psycopg2
+import psycopg2.extras
 import os
 from datetime import datetime
-from functools import wraps
 
 app = Flask(__name__, static_folder='.')
 
-DB_PATH = os.environ.get('DB_PATH', 'responses.db')
+DATABASE_URL = os.environ.get('DATABASE_URL')
 VIEW_PASSWORD = os.environ.get('VIEW_PASSWORD', 'research2024')
 
 def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
+    return psycopg2.connect(DATABASE_URL)
 
 def init_db():
     with get_db() as conn:
-        conn.execute('''
-            CREATE TABLE IF NOT EXISTS responses (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                timestamp TEXT,
-                graph_name TEXT,
-                q1 TEXT,
-                q2 TEXT,
-                q3 TEXT,
-                ease TEXT,
-                confidence TEXT
-            )
-        ''')
+        with conn.cursor() as cur:
+            cur.execute('''
+                CREATE TABLE IF NOT EXISTS responses (
+                    id SERIAL PRIMARY KEY,
+                    timestamp TEXT,
+                    graph_name TEXT,
+                    q1 TEXT,
+                    q2 TEXT,
+                    q3 TEXT,
+                    ease TEXT,
+                    confidence TEXT
+                )
+            ''')
 
 init_db()
 
@@ -56,18 +55,19 @@ def submit():
     data = request.get_json()
     answers = data.get('answers', {})
     with get_db() as conn:
-        conn.execute('''
-            INSERT INTO responses (timestamp, graph_name, q1, q2, q3, ease, confidence)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        ''', (
-            datetime.utcnow().isoformat(),
-            data.get('graphName', ''),
-            answers.get('q0', ''),
-            answers.get('q1', ''),
-            answers.get('q2', ''),
-            data.get('ease', ''),
-            data.get('confidence', '')
-        ))
+        with conn.cursor() as cur:
+            cur.execute('''
+                INSERT INTO responses (timestamp, graph_name, q1, q2, q3, ease, confidence)
+                VALUES (%s, %s, %s, %s, %s, %s, %s)
+            ''', (
+                datetime.utcnow().isoformat(),
+                data.get('graphName', ''),
+                answers.get('q0', ''),
+                answers.get('q1', ''),
+                answers.get('q2', ''),
+                data.get('ease', ''),
+                data.get('confidence', '')
+            ))
     return jsonify({'status': 'success'})
 
 # --- Responses viewer ---
@@ -80,10 +80,10 @@ RESPONSES_TEMPLATE = '''
     <style>
         body { font-family: sans-serif; padding: 2rem; }
         table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
-        th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
+        th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; vertical-align: top; }
         th { background: #f0f0f0; }
         tr:nth-child(even) { background: #fafafa; }
-        h1 { margin-bottom: 1rem; }
+        h1 { margin-bottom: 0.5rem; }
         .count { color: #555; margin-bottom: 1rem; }
     </style>
 </head>
@@ -106,14 +106,14 @@ RESPONSES_TEMPLATE = '''
         <tbody>
             {% for row in rows %}
             <tr>
-                <td>{{ row['id'] }}</td>
-                <td>{{ row['timestamp'] }}</td>
-                <td>{{ row['graph_name'] }}</td>
-                <td>{{ row['q1'] }}</td>
-                <td>{{ row['q2'] }}</td>
-                <td>{{ row['q3'] }}</td>
-                <td>{{ row['ease'] }}</td>
-                <td>{{ row['confidence'] }}</td>
+                <td>{{ row[0] }}</td>
+                <td>{{ row[1] }}</td>
+                <td>{{ row[2] }}</td>
+                <td>{{ row[3] }}</td>
+                <td>{{ row[4] }}</td>
+                <td>{{ row[5] }}</td>
+                <td>{{ row[6] }}</td>
+                <td>{{ row[7] }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -128,7 +128,9 @@ def view_responses():
     if password != VIEW_PASSWORD:
         return 'Access denied. Add ?password=your_password to the URL.', 403
     with get_db() as conn:
-        rows = conn.execute('SELECT * FROM responses ORDER BY id DESC').fetchall()
+        with conn.cursor() as cur:
+            cur.execute('SELECT id, timestamp, graph_name, q1, q2, q3, ease, confidence FROM responses ORDER BY id DESC')
+            rows = cur.fetchall()
     return render_template_string(RESPONSES_TEMPLATE, rows=rows)
 
 if __name__ == '__main__':
