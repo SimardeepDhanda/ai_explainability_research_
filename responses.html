@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Study Responses</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f7f7f7;
+            color: #111;
+        }
+
+        .page {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 32px 20px 48px;
+        }
+
+        h1 {
+            margin-bottom: 8px;
+        }
+
+        .toolbar {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            margin: 20px 0;
+        }
+
+        input, button {
+            font: inherit;
+            padding: 10px 12px;
+        }
+
+        button {
+            cursor: pointer;
+        }
+
+        .status {
+            margin: 12px 0 20px;
+            min-height: 24px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: #fff;
+        }
+
+        th, td {
+            border: 1px solid #d8d8d8;
+            padding: 10px 12px;
+            text-align: left;
+            vertical-align: top;
+            font-size: 0.9rem;
+        }
+
+        th {
+            background: #efefef;
+        }
+
+        tr:nth-child(even) {
+            background: #fafafa;
+        }
+    </style>
+</head>
+<body>
+    <div class="page">
+        <h1>Study Responses</h1>
+        <p>Enter the viewer password to load submissions from Supabase.</p>
+
+        <div class="toolbar">
+            <input id="password" type="password" placeholder="Viewer password">
+            <button id="loadBtn" type="button">Load Responses</button>
+        </div>
+
+        <div class="status" id="status"></div>
+
+        <table id="responsesTable" hidden>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Timestamp</th>
+                    <th>Graph</th>
+                    <th>Q1</th>
+                    <th>Q2</th>
+                    <th>Q3</th>
+                    <th>Ease</th>
+                    <th>Confidence</th>
+                </tr>
+            </thead>
+            <tbody id="responsesBody"></tbody>
+        </table>
+    </div>
+
+    <script>
+        const passwordInput = document.getElementById('password');
+        const loadBtn = document.getElementById('loadBtn');
+        const statusEl = document.getElementById('status');
+        const tableEl = document.getElementById('responsesTable');
+        const bodyEl = document.getElementById('responsesBody');
+
+        async function loadResponses() {
+            statusEl.textContent = 'Loading responses...';
+            tableEl.hidden = true;
+            bodyEl.innerHTML = '';
+
+            try {
+                const password = passwordInput.value.trim();
+                const response = await fetch(`/api/responses?password=${encodeURIComponent(password)}`);
+                const payload = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(payload.error || 'Unable to load responses.');
+                }
+
+                const rows = payload.rows || [];
+                statusEl.textContent = `Total responses: ${rows.length}`;
+
+                rows.forEach((row) => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.id ?? ''}</td>
+                        <td>${row.timestamp ?? ''}</td>
+                        <td>${row.graph_name ?? ''}</td>
+                        <td>${row.q1 ?? ''}</td>
+                        <td>${row.q2 ?? ''}</td>
+                        <td>${row.q3 ?? ''}</td>
+                        <td>${row.ease ?? ''}</td>
+                        <td>${row.confidence ?? ''}</td>
+                    `;
+                    bodyEl.appendChild(tr);
+                });
+
+                tableEl.hidden = false;
+            } catch (error) {
+                statusEl.textContent = error.message;
+            }
+        }
+
+        loadBtn.addEventListener('click', loadResponses);
+    </script>
+</body>
+</html>

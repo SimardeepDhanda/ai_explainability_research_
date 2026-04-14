@@ -106,7 +106,6 @@ function setupFormSubmit() {
         }
 
         saveResponses();
-        showSuccessMessage();
     });
 }
 
@@ -138,16 +137,33 @@ function validateResponses() {
     return true;
 }
 
-function saveResponses() {
-    const BACKEND_URL = "https://your-app.onrender.com/submit";
+async function saveResponses() {
+    const errorMsg = document.getElementById('errorMessage');
+    const submitBtn = document.getElementById('submitBtn');
 
-    fetch(BACKEND_URL, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(responses)
-    });
+    errorMsg.style.display = 'none';
+    submitBtn.disabled = true;
+    submitBtn.textContent = 'Submitting...';
 
-    localStorage.setItem('studyResponses', JSON.stringify(responses));
+    try {
+        const response = await fetch('/api/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(responses)
+        });
+
+        if (!response.ok) {
+            throw new Error('Unable to save your responses right now.');
+        }
+
+        localStorage.setItem('studyResponses', JSON.stringify(responses));
+        showSuccessMessage();
+    } catch (error) {
+        errorMsg.textContent = error.message;
+        errorMsg.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Submit Responses';
+    }
 }
 
 function showSuccessMessage() {
@@ -159,8 +175,8 @@ function showSuccessMessage() {
     document.getElementById('submitBtn').disabled = true;
     document.getElementById('submitBtn').textContent = 'Submitted';
     
-    // show download section
-    document.getElementById('downloadSection').style.display = 'block';
+    const downloadSection = document.getElementById('downloadSection');
+    if (downloadSection) {
+        downloadSection.style.display = 'block';
+    }
 }
-
-

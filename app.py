@@ -1,34 +1,15 @@
 from flask import Flask, send_from_directory, request, jsonify, render_template_string
-import psycopg2
-import psycopg2.extras
+from supabase import create_client
 import os
 from datetime import datetime
 
 app = Flask(__name__, static_folder='.')
 
-DATABASE_URL = os.environ.get('DATABASE_URL')
+SUPABASE_URL = os.environ.get('SUPABASE_URL')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
 VIEW_PASSWORD = os.environ.get('VIEW_PASSWORD', 'research2024')
 
-def get_db():
-    return psycopg2.connect(DATABASE_URL)
-
-def init_db():
-    with get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute('''
-                CREATE TABLE IF NOT EXISTS responses (
-                    id SERIAL PRIMARY KEY,
-                    timestamp TEXT,
-                    graph_name TEXT,
-                    q1 TEXT,
-                    q2 TEXT,
-                    q3 TEXT,
-                    ease TEXT,
-                    confidence TEXT
-                )
-            ''')
-
-init_db()
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # --- Static files ---
 
@@ -54,20 +35,15 @@ def images(filename):
 def submit():
     data = request.get_json()
     answers = data.get('answers', {})
-    with get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute('''
-                INSERT INTO responses (timestamp, graph_name, q1, q2, q3, ease, confidence)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)
-            ''', (
-                datetime.utcnow().isoformat(),
-                data.get('graphName', ''),
-                answers.get('q0', ''),
-                answers.get('q1', ''),
-                answers.get('q2', ''),
-                data.get('ease', ''),
-                data.get('confidence', '')
-            ))
+    supabase.table('responses').insert({
+        'timestamp': datetime.utcnow().isoformat(),
+        'graph_name': data.get('graphName', ''),
+        'q1': answers.get('q0', ''),
+        'q2': answers.get('q1', ''),
+        'q3': answers.get('q2', ''),
+        'ease': data.get('ease', ''),
+        'confidence': data.get('confidence', '')
+    }).execute()
     return jsonify({'status': 'success'})
 
 # --- Responses viewer ---
@@ -106,14 +82,14 @@ RESPONSES_TEMPLATE = '''
         <tbody>
             {% for row in rows %}
             <tr>
-                <td>{{ row[0] }}</td>
-                <td>{{ row[1] }}</td>
-                <td>{{ row[2] }}</td>
-                <td>{{ row[3] }}</td>
-                <td>{{ row[4] }}</td>
-                <td>{{ row[5] }}</td>
-                <td>{{ row[6] }}</td>
-                <td>{{ row[7] }}</td>
+                <td>{{ row['id'] }}</td>
+                <td>{{ row['timestamp'] }}</td>
+                <td>{{ row['graph_name'] }}</td>
+                <td>{{ row['q1'] }}</td>
+                <td>{{ row['q2'] }}</td>
+                <td>{{ row['q3'] }}</td>
+                <td>{{ row['ease'] }}</td>
+                <td>{{ row['confidence'] }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -127,10 +103,7 @@ def view_responses():
     password = request.args.get('password', '')
     if password != VIEW_PASSWORD:
         return 'Access denied. Add ?password=your_password to the URL.', 403
-    with get_db() as conn:
-        with conn.cursor() as cur:
-            cur.execute('SELECT id, timestamp, graph_name, q1, q2, q3, ease, confidence FROM responses ORDER BY id DESC')
-            rows = cur.fetchall()
+    rows = supabase.table('responses').select('*').order('id', desc=True).execute().data
     return render_template_string(RESPONSES_TEMPLATE, rows=rows)
 
 if __name__ == '__main__':
