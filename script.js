@@ -139,10 +139,11 @@ function validateResponses() {
 }
 
 function saveResponses() {
-    const WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyT6Qbs21vt6nPURfM9VxoVxsgtOCsJOAmyEBBl63-scvx8n4cjzxvdFb5gNrpbRFx5/exec";
+    const BACKEND_URL = "https://your-app.onrender.com/submit";
 
-    fetch(WEB_APP_URL, {
+    fetch(BACKEND_URL, {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(responses)
     });
 
