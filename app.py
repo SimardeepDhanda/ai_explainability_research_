@@ -1,15 +1,34 @@
 from flask import Flask, send_from_directory, request, jsonify, render_template_string
-from supabase import create_client
+import sqlite3
 import os
 from datetime import datetime
 
 app = Flask(__name__, static_folder='.')
 
-SUPABASE_URL = os.environ.get('SUPABASE_URL')
-SUPABASE_KEY = os.environ.get('SUPABASE_KEY')
+DB_PATH = os.environ.get('DB_PATH', 'responses.db')
 VIEW_PASSWORD = os.environ.get('VIEW_PASSWORD', 'research2024')
 
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+def get_db():
+    conn = sqlite3.connect(DB_PATH)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def init_db():
+    with get_db() as conn:
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS responses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                timestamp TEXT,
+                graph_name TEXT,
+                q1 TEXT,
+                q2 TEXT,
+                q3 TEXT,
+                ease TEXT,
+                confidence TEXT
+            )
+        ''')
+
+init_db()
 
 # --- Static files ---
 
@@ -35,15 +54,19 @@ def images(filename):
 def submit():
     data = request.get_json()
     answers = data.get('answers', {})
-    supabase.table('responses').insert({
-        'timestamp': datetime.utcnow().isoformat(),
-        'graph_name': data.get('graphName', ''),
-        'q1': answers.get('q0', ''),
-        'q2': answers.get('q1', ''),
-        'q3': answers.get('q2', ''),
-        'ease': data.get('ease', ''),
-        'confidence': data.get('confidence', '')
-    }).execute()
+    with get_db() as conn:
+        conn.execute('''
+            INSERT INTO responses (timestamp, graph_name, q1, q2, q3, ease, confidence)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        ''', (
+            datetime.utcnow().isoformat(),
+            data.get('graphName', ''),
+            answers.get('q0', ''),
+            answers.get('q1', ''),
+            answers.get('q2', ''),
+            data.get('ease', ''),
+            data.get('confidence', '')
+        ))
     return jsonify({'status': 'success'})
 
 # --- Responses viewer ---
@@ -103,7 +126,10 @@ def view_responses():
     password = request.args.get('password', '')
     if password != VIEW_PASSWORD:
         return 'Access denied. Add ?password=your_password to the URL.', 403
-    rows = supabase.table('responses').select('*').order('id', desc=True).execute().data
+    with get_db() as conn:
+        rows = conn.execute(
+            'SELECT id, timestamp, graph_name, q1, q2, q3, ease, confidence FROM responses ORDER BY id DESC'
+        ).fetchall()
     return render_template_string(RESPONSES_TEMPLATE, rows=rows)
 
 if __name__ == '__main__':
