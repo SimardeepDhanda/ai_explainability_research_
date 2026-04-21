@@ -84,6 +84,8 @@ RESPONSES_TEMPLATE = '''
         tr:nth-child(even) { background: #fafafa; }
         h1 { margin-bottom: 0.5rem; }
         .count { color: #555; margin-bottom: 1rem; }
+        .dataset-badge { display: inline-block; background: #dbeafe; color: #1e40af;
+                         border-radius: 4px; padding: 1px 6px; font-size: 0.8rem; }
     </style>
 </head>
 <body>
@@ -94,7 +96,8 @@ RESPONSES_TEMPLATE = '''
             <tr>
                 <th>#</th>
                 <th>Timestamp</th>
-                <th>Graph</th>
+                <th>Graph Type</th>
+                <th>Dataset</th>
                 <th>Q1</th>
                 <th>Q2</th>
                 <th>Q3</th>
@@ -104,10 +107,12 @@ RESPONSES_TEMPLATE = '''
         </thead>
         <tbody>
             {% for row in rows %}
+            {% set parts = row['graph_name'].split(' — ') %}
             <tr>
                 <td>{{ row['id'] }}</td>
                 <td>{{ row['timestamp'] }}</td>
-                <td>{{ row['graph_name'] }}</td>
+                <td>{{ parts[0] }}</td>
+                <td>{% if parts|length > 1 %}<span class="dataset-badge">{{ parts[1] }}</span>{% else %}—{% endif %}</td>
                 <td>{{ row['q1'] }}</td>
                 <td>{{ row['q2'] }}</td>
                 <td>{{ row['q3'] }}</td>
