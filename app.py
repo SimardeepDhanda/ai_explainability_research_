@@ -1,7 +1,7 @@
 from flask import Flask, send_from_directory, request, jsonify, render_template_string
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime, timezone
 
 app = Flask(__name__, static_folder='.')
 
@@ -15,6 +15,7 @@ def get_db():
 
 def init_db():
     with get_db() as conn:
+        # Legacy table kept for any existing data
         conn.execute('''
             CREATE TABLE IF NOT EXISTS responses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -27,10 +28,24 @@ def init_db():
                 confidence TEXT
             )
         ''')
+        # New flexible per-task table
+        conn.execute('''
+            CREATE TABLE IF NOT EXISTS task_responses (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                session_id TEXT,
+                timestamp TEXT,
+                task_index INTEGER,
+                task_type TEXT,
+                graph_name TEXT,
+                answer TEXT,
+                ease TEXT,
+                confidence TEXT
+            )
+        ''')
 
 init_db()
 
-# --- Static files ---
+#static files
 
 @app.route('/')
 def index():
@@ -48,28 +63,30 @@ def styles():
 def images(filename):
     return send_from_directory('images', filename)
 
-# --- API ---
+#API
 
 @app.route('/submit', methods=['POST'])
 def submit():
     data = request.get_json()
-    answers = data.get('answers', {})
+    now = datetime.now(timezone.utc).isoformat()
     with get_db() as conn:
         conn.execute('''
-            INSERT INTO responses (timestamp, graph_name, q1, q2, q3, ease, confidence)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO task_responses
+                (session_id, timestamp, task_index, task_type, graph_name, answer, ease, confidence)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
         ''', (
-            datetime.utcnow().isoformat(),
+            data.get('sessionId', ''),
+            now,
+            data.get('taskIndex', 0),
+            data.get('taskType', ''),
             data.get('graphName', ''),
-            answers.get('q0', ''),
-            answers.get('q1', ''),
-            answers.get('q2', ''),
+            data.get('answer', ''),
             data.get('ease', ''),
-            data.get('confidence', '')
+            data.get('confidence', ''),
         ))
     return jsonify({'status': 'success'})
 
-# --- Responses viewer ---
+#Responses viewer 
 
 RESPONSES_TEMPLATE = '''
 <!DOCTYPE html>
@@ -78,46 +95,49 @@ RESPONSES_TEMPLATE = '''
     <title>Study Responses</title>
     <style>
         body { font-family: sans-serif; padding: 2rem; }
-        table { border-collapse: collapse; width: 100%; font-size: 0.85rem; }
-        th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; vertical-align: top; }
-        th { background: #f0f0f0; }
+        table { border-collapse: collapse; width: 100%; font-size: 0.82rem; }
+        th, td { border: 1px solid #ccc; padding: 7px 10px; text-align: left; vertical-align: top; }
+        th { background: #f0f0f0; white-space: nowrap; }
         tr:nth-child(even) { background: #fafafa; }
         h1 { margin-bottom: 0.5rem; }
         .count { color: #555; margin-bottom: 1rem; }
-        .dataset-badge { display: inline-block; background: #dbeafe; color: #1e40af;
-                         border-radius: 4px; padding: 1px 6px; font-size: 0.8rem; }
+        .badge { display: inline-block; border-radius: 4px; padding: 1px 7px; font-size: 0.75rem; font-weight: 600; }
+        .badge-comprehension { background: #dbeafe; color: #1e3a8a; }
+        .badge-comparison    { background: #fef3c7; color: #78350f; }
+        .badge-ranking       { background: #d1fae5; color: #064e3b; }
+        .session-id { font-family: monospace; font-size: 0.75rem; color: #888; }
+        .answer-cell { max-width: 340px; word-break: break-word; white-space: pre-wrap; }
     </style>
 </head>
 <body>
     <h1>Study Responses</h1>
-    <p class="count">Total responses: {{ rows|length }}</p>
+    <p class="count">Total task responses: {{ rows|length }}</p>
     <table>
         <thead>
             <tr>
                 <th>#</th>
+                <th>Session</th>
                 <th>Timestamp</th>
-                <th>Graph Type</th>
-                <th>Dataset</th>
-                <th>Q1</th>
-                <th>Q2</th>
-                <th>Q3</th>
+                <th>Task #</th>
+                <th>Type</th>
+                <th>Graph</th>
+                <th>Answer</th>
                 <th>Ease</th>
                 <th>Confidence</th>
             </tr>
         </thead>
         <tbody>
             {% for row in rows %}
-            {% set parts = row['graph_name'].split(' — ') %}
             <tr>
                 <td>{{ row['id'] }}</td>
-                <td>{{ row['timestamp'] }}</td>
-                <td>{{ parts[0] }}</td>
-                <td>{% if parts|length > 1 %}<span class="dataset-badge">{{ parts[1] }}</span>{% else %}—{% endif %}</td>
-                <td>{{ row['q1'] }}</td>
-                <td>{{ row['q2'] }}</td>
-                <td>{{ row['q3'] }}</td>
-                <td>{{ row['ease'] }}</td>
-                <td>{{ row['confidence'] }}</td>
+                <td><span class="session-id">{{ row['session_id'][:8] if row['session_id'] else '—' }}</span></td>
+                <td>{{ row['timestamp'][:19].replace('T', ' ') }}</td>
+                <td style="text-align:center">{{ row['task_index'] + 1 }}</td>
+                <td><span class="badge badge-{{ row['task_type'] }}">{{ row['task_type'] }}</span></td>
+                <td>{{ row['graph_name'] }}</td>
+                <td class="answer-cell">{{ row['answer'] }}</td>
+                <td style="text-align:center">{{ row['ease'] }}</td>
+                <td style="text-align:center">{{ row['confidence'] }}</td>
             </tr>
             {% endfor %}
         </tbody>
@@ -133,9 +153,11 @@ def view_responses():
         return 'Access denied. Add ?password=your_password to the URL.', 403
     with get_db() as conn:
         rows = conn.execute(
-            'SELECT id, timestamp, graph_name, q1, q2, q3, ease, confidence FROM responses ORDER BY id DESC'
+            '''SELECT id, session_id, timestamp, task_index, task_type,
+                      graph_name, answer, ease, confidence
+               FROM task_responses ORDER BY id DESC'''
         ).fetchall()
     return render_template_string(RESPONSES_TEMPLATE, rows=rows)
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=8080)

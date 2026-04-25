@@ -7,68 +7,30 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <h1>Graph Understanding Study</h1>
-            <p>Please analyze the graph below and answer the questions</p>
+
+    <div class="progress-header" id="progressHeader">
+        <div class="progress-info">
+            <span class="progress-label" id="progressLabel">Introduction</span>
         </div>
-
-        <div class="error-message" id="errorMessage"></div>
-        <div class="success-message" id="successMessage"></div>
-
-        <div class="instruction-box">
-            <p><strong>Instructions:</strong> Please examine the graph carefully. Answer the questions below, then rate your understanding and confidence using the 1–5 scales.</p>
+        <div class="progress-track">
+            <div class="progress-fill" id="progressFill"></div>
         </div>
+    </div>
 
-        <form id="studyForm">
-            <!-- graph Display -->
-            <div class="graph-section">
-                <img id="graphImage" src="" alt="Graph">
-                <div class="graph-title" id="graphTitle"></div>
-            </div>
+    <div class="container" id="mainContainer">
+        <!-- Dynamically rendered by script.js -->
+    </div>
 
-            <!-- questions section -->
-            <div class="questions-section" id="questionsContainer">
-            </div>
+    <!-- Ground truth popout — slides in above bottom bar after submit -->
+    <div class="gt-popout" id="gtPopout">
+        <span class="gt-label">Ground Truth:</span>
+        <span class="gt-value" id="gtValue">____</span>
+    </div>
 
-            <!-- standard questions -->
-            <div class="questions-section">
-                <!-- how easyu nderstanding is -->
-                <div class="question-block">
-                    <label class="question-label">How easy was this graph to understand?</label>
-                    <div class="rating-group" id="easeGroup">
-                        <button type="button" class="rating-btn" data-value="1">1</button>
-                        <button type="button" class="rating-btn" data-value="2">2</button>
-                        <button type="button" class="rating-btn" data-value="3">3</button>
-                        <button type="button" class="rating-btn" data-value="4">4</button>
-                        <button type="button" class="rating-btn" data-value="5">5</button>
-                    </div>
-                    <div class="scale-label">1 = Very difficult, 5 = Very easy</div>
-                    <input type="hidden" id="easeRating" name="ease" value="">
-                </div>
-
-                <!-- Confidence qustion-->
-                <div class="question-block">
-                    <label class="question-label">How confident are you in your answers?</label>
-                    <div class="rating-group" id="confidenceGroup">
-                        <button type="button" class="rating-btn" data-value="1">1</button>
-                        <button type="button" class="rating-btn" data-value="2">2</button>
-                        <button type="button" class="rating-btn" data-value="3">3</button>
-                        <button type="button" class="rating-btn" data-value="4">4</button>
-                        <button type="button" class="rating-btn" data-value="5">5</button>
-                    </div>
-                    <div class="scale-label">1 = Not confident, 5 = Very confident</div>
-                    <input type="hidden" id="confidenceRating" name="confidence" value="">
-                </div>
-            </div>
-
-            <!-- Submit Button -->
-            <div class="buttons-section">
-                <button type="submit" class="btn btn-submit" id="submitBtn">Submit Responses</button>
-            </div>
-        </form>
-
-
+    <div class="bottom-bar">
+        <div id="errorMessage" class="error-message"></div>
+        <button class="btn-next" id="nextBtn">Begin Study ›</button>
+    </div>
 
     <script src="script.js"></script>
 </body>

@@ -1,0 +1,47 @@
+Beeswarm Plot
+/?graph=beeswarm&dataset=1
+/?graph=beeswarm&dataset=2
+/?graph=beeswarm&dataset=3
+/?graph=beeswarm&dataset=4
+
+Contour Plot
+/?graph=contour&dataset=1
+/?graph=contour&dataset=2
+/?graph=contour&dataset=3
+/?graph=contour&dataset=4
+
+Color-Coded Confidence
+/?graph=confidence&dataset=1
+/?graph=confidence&dataset=2
+/?graph=confidence&dataset=3
+/?graph=confidence&dataset=4
+
+Error Bars
+/?graph=error_bars&dataset=1
+/?graph=error_bars&dataset=2
+/?graph=error_bars&dataset=3
+/?graph=error_bars&dataset=4
+
+Gradient Density Interval
+/?graph=gradient_density&dataset=1
+/?graph=gradient_density&dataset=2
+/?graph=gradient_density&dataset=3
+/?graph=gradient_density&dataset=4
+
+Scatter Rug Plot
+/?graph=scatter_rug&dataset=1
+/?graph=scatter_rug&dataset=2
+/?graph=scatter_rug&dataset=3
+/?graph=scatter_rug&dataset=4
+
+Violin Style Distribution
+/?graph=violin&dataset=1
+/?graph=violin&dataset=2
+/?graph=violin&dataset=3
+/?graph=violin&dataset=4
+
+HOP Graph
+/?graph=hop&dataset=1
+/?graph=hop&dataset=2
+/?graph=hop&dataset=3
+/?graph=hop&dataset=4

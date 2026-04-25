@@ -1,233 +1,327 @@
-// Graph type definitions
-// Images must be named: images/<slug>_d<1-4>.<ext>
-// e.g. images/beeswarm_d1.png, images/hop_d2.gif
-const GRAPHS = [
-    { slug: 'beeswarm',          name: 'Beeswarm Plot',                ext: 'png' },
-    { slug: 'contour',           name: 'Contour Plot',                 ext: 'png' },
-    { slug: 'confidence',        name: 'Color-Coded Confidence',       ext: 'png' },
-    { slug: 'error_bars',        name: 'Error Bars',                   ext: 'png' },
-    { slug: 'gradient_density',  name: 'Gradient Density Interval',    ext: 'png' },
-    { slug: 'scatter_rug',       name: 'Scatter Rug Plot',             ext: 'png' },
-    { slug: 'violin',            name: 'Violin Style Distribution',    ext: 'png' },
-    { slug: 'hop',               name: 'HOP Graph',                    ext: 'gif' }
-];
+// ----------------------------------------------------------------
+// Study configuration
+// ----------------------------------------------------------------
 
-const DATASETS = [
-    { id: '1', name: 'Dataset 1' },
-    { id: '2', name: 'Dataset 2' },
-    { id: '3', name: 'Dataset 3' },
-    { id: '4', name: 'Dataset 4' }
-];
+const QUESTION_TEXT = 'Based on the beeswarm plot, what is your best estimate of the predicted sale price for House 3? How certain does the model appear to be about this prediction?';
 
-// Predetermined questions for the study
-const predeterminedQuestions = [
-    "question 1",
-    "question 2",
-    "question 3"
-];
+const TASK_CONTEXT = 'A machine learning model predicts the sale price of houses based on their features. Each dot in the beeswarm plot represents one sampled outcome from the model\'s prediction distribution for a given house.';
 
-// State
-let currentGraph = null;
-let currentDataset = null;
-let responses = {
-    graphName: '',
-    answers: {},
-    ease: '',
-    confidence: ''
+// 8 datasets, shuffled fresh each page load
+function shuffleArray(arr) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
+}
+
+const TASKS = shuffleArray([1, 2, 3, 4, 5, 6, 7, 8]).map(ds => ({
+    graph:   'beeswarm',
+    dataset: String(ds),
+}));
+
+const GRAPH_REGISTRY = {
+    beeswarm: { name: 'Beeswarm Plot', ext: 'png' },
 };
 
-// Initialize
-document.addEventListener('DOMContentLoaded', function() {
-    const params = getURLParams();
-    if (!loadGraphFromParams(params)) {
-        showParamError(params);
-        return;
+const SESSION_ID = (() => {
+    const key = 'studySessionId';
+    let id = sessionStorage.getItem(key);
+    if (!id) {
+        id = Math.random().toString(36).slice(2) + Date.now().toString(36);
+        sessionStorage.setItem(key, id);
     }
-    setupQuestions();
-    setupRatingButtons();
-    setupFormSubmit();
+    return id;
+})();
+
+// ----------------------------------------------------------------
+// State
+// ----------------------------------------------------------------
+
+let phase = 'intro';         // 'intro' | 'task' | 'questionnaire' | 'complete'
+let currentTaskIndex = 0;
+let groundTruthShowing = false;
+
+// ----------------------------------------------------------------
+// Entry point
+// ----------------------------------------------------------------
+
+document.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('nextBtn').addEventListener('click', handleNext);
+    renderCurrentState();
 });
 
-function getURLParams() {
-    const params = new URLSearchParams(window.location.search);
-    return {
-        graph: params.get('graph'),
-        dataset: params.get('dataset')
-    };
+// ----------------------------------------------------------------
+// Top-level render dispatcher
+// ----------------------------------------------------------------
+
+function renderCurrentState() {
+    updateProgressBar();
+    clearError();
+    const container = document.getElementById('mainContainer');
+
+    if (phase === 'intro')          renderIntro(container);
+    else if (phase === 'task')      renderTask(container, TASKS[currentTaskIndex]);
+    else if (phase === 'questionnaire') renderQuestionnaire(container);
+    else if (phase === 'complete')  renderComplete(container);
 }
 
-function loadGraphFromParams(params) {
-    const graph = GRAPHS.find(g => g.slug === params.graph);
-    const dataset = DATASETS.find(d => d.id === params.dataset);
+function updateProgressBar() {
+    const fill   = document.getElementById('progressFill');
+    const label  = document.getElementById('progressLabel');
+    const btn    = document.getElementById('nextBtn');
 
-    if (!graph || !dataset) {
-        return false;
+    btn.disabled    = false;
+    btn.style.display = '';
+
+    if (phase === 'intro') {
+        fill.style.width    = '0%';
+        label.textContent   = 'Introduction';
+        btn.textContent     = 'Begin Study ›';
+    } else if (phase === 'task') {
+        const pct           = Math.round((currentTaskIndex / TASKS.length) * 100);
+        fill.style.width    = pct + '%';
+        label.textContent   = `Task ${currentTaskIndex + 1} of ${TASKS.length}`;
+        btn.textContent     = groundTruthShowing ? 'Next Task ›' : 'Submit';
+    } else if (phase === 'questionnaire') {
+        fill.style.width    = '100%';
+        label.textContent   = 'Questionnaire';
+        btn.textContent     = 'Continue ›';
+    } else if (phase === 'complete') {
+        fill.style.width    = '100%';
+        label.textContent   = 'Complete';
+        btn.style.display   = 'none';
     }
-
-    currentGraph = graph;
-    currentDataset = dataset;
-
-    const imageFile = `images/${graph.slug}_d${dataset.id}.${graph.ext}`;
-    const graphLabel = `${graph.name} — ${dataset.name}`;
-
-    document.getElementById('graphImage').src = imageFile;
-    document.getElementById('graphImage').alt = graphLabel;
-    document.getElementById('graphTitle').textContent = graphLabel;
-
-    responses.graphName = graphLabel;
-    return true;
 }
 
-function showParamError(params) {
-    const container = document.querySelector('.container');
+// ----------------------------------------------------------------
+// Page renderers
+// ----------------------------------------------------------------
+
+function renderIntro(container) {
     container.innerHTML = `
-        <div class="header">
-            <h1>Graph Understanding Study</h1>
-        </div>
-        <div class="error-message" style="display:block; padding: 1.5rem;">
-            <strong>Invalid or missing URL parameters.</strong><br><br>
-            ${params.graph && !GRAPHS.find(g => g.slug === params.graph)
-                ? `Unknown graph: <code>${params.graph}</code><br>` : ''}
-            ${params.dataset && !DATASETS.find(d => d.id === params.dataset)
-                ? `Unknown dataset: <code>${params.dataset}</code><br>` : ''}
-            ${!params.graph || !params.dataset
-                ? 'Both <code>graph</code> and <code>dataset</code> URL parameters are required.<br>' : ''}
-            <br>
-            <strong>Valid graph values:</strong>
-            <ul style="margin:0.5rem 0 0.5rem 1.5rem">
-                ${GRAPHS.map(g => `<li><code>${g.slug}</code> — ${g.name}</li>`).join('')}
-            </ul>
-            <strong>Valid dataset values:</strong> <code>1</code>, <code>2</code>, <code>3</code>, <code>4</code><br><br>
-            <strong>Example link:</strong> <code>/?graph=beeswarm&amp;dataset=1</code>
+        <div class="placeholder-page">
+            <div class="placeholder-content">
+                <h1>Welcome to the Study</h1>
+                <p class="placeholder-body">[Instructions and study overview will go here]</p>
+            </div>
         </div>
     `;
 }
 
-function setupQuestions() {
-    const container = document.getElementById('questionsContainer');
-    container.innerHTML = '';
+function renderQuestionnaire(container) {
+    container.innerHTML = `
+        <div class="placeholder-page">
+            <div class="placeholder-content">
+                <h1>Questionnaire</h1>
+                <p class="placeholder-body">[Post-study questionnaire will go here]</p>
+            </div>
+        </div>
+    `;
+}
 
-    predeterminedQuestions.forEach((question, index) => {
-        const questionId = `q${index}`;
-        const block = document.createElement('div');
-        block.className = 'question-block';
-        block.innerHTML = `
-            <label class="question-label">Q${index + 1}: ${question}</label>
-            <textarea class="response-input" id="${questionId}" placeholder="Type your answer here..."></textarea>
-            <input type="hidden" id="${questionId}-value" value="">
-        `;
-        container.appendChild(block);
-        responses.answers[questionId] = '';
+function renderComplete(container) {
+    container.innerHTML = `
+        <div class="placeholder-page">
+            <div class="placeholder-content">
+                <div class="check-icon">✓</div>
+                <h1>Study Complete!</h1>
+                <p class="placeholder-body">Thank you for participating. All your responses have been saved successfully.</p>
+            </div>
+        </div>
+    `;
+}
+
+function renderTask(container, task) {
+    const graphInfo = GRAPH_REGISTRY[task.graph] || { name: task.graph, ext: 'png' };
+    const imageSrc  = `images/${task.graph}_d${task.dataset}.${graphInfo.ext}`;
+
+    container.innerHTML = `
+        <div class="task-layout">
+
+            <!-- Left: graph image -->
+            <div class="task-left">
+                <div class="graph-panel">
+                    <div class="section-title">${esc(graphInfo.name)} — Dataset ${esc(task.dataset)}</div>
+                    <div class="graph-image-wrapper">
+                        <img src="${imageSrc}" alt="${esc(graphInfo.name)}">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: context + question + experience rating -->
+            <div class="task-right">
+
+                <div class="section-box context-box">
+                    <div class="section-title">Task Description</div>
+                    <div class="section-body">${esc(TASK_CONTEXT)}</div>
+                </div>
+
+                <div class="question-panel">
+                    <div class="section-title">Question</div>
+                    <label class="question-label" for="mainAnswer">${esc(QUESTION_TEXT)}</label>
+                    <textarea class="question-textarea" id="mainAnswer" placeholder="Type your answer here..."></textarea>
+                </div>
+
+                <div class="rating-panel">
+                    <div class="section-title">Rate My Experience</div>
+
+                    <div class="slider-block-compact">
+                        <label class="slider-label-compact" for="easeSlider">How easy was it to answer?</label>
+                        <div class="slider-row">
+                            <span class="slider-end-label">Very difficult</span>
+                            <input type="range" class="slider-input" id="easeSlider" min="1" max="5" value="3">
+                            <span class="slider-end-label right">Very easy</span>
+                            <span class="slider-value-display" id="easeDisplay">3</span>
+                        </div>
+                    </div>
+
+                    <div class="slider-block-compact">
+                        <label class="slider-label-compact" for="confidenceSlider">How confident are you in your answer?</label>
+                        <div class="slider-row">
+                            <span class="slider-end-label">Not confident</span>
+                            <input type="range" class="slider-input" id="confidenceSlider" min="1" max="5" value="3">
+                            <span class="slider-end-label right">Very confident</span>
+                            <span class="slider-value-display" id="confidenceDisplay">3</span>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    `;
+
+    document.getElementById('easeSlider').addEventListener('input', function () {
+        document.getElementById('easeDisplay').textContent = this.value;
+    });
+    document.getElementById('confidenceSlider').addEventListener('input', function () {
+        document.getElementById('confidenceDisplay').textContent = this.value;
     });
 }
 
-function setupRatingButtons() {
-    document.querySelectorAll('#easeGroup .rating-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            document.querySelectorAll('#easeGroup .rating-btn').forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-            responses.ease = this.dataset.value;
-            document.getElementById('easeRating').value = this.dataset.value;
-        });
-    });
+// ----------------------------------------------------------------
+// Navigation
+// ----------------------------------------------------------------
 
-    document.querySelectorAll('#confidenceGroup .rating-btn').forEach(btn => {
-        btn.addEventListener('click', function(e) {
-            e.preventDefault();
-            document.querySelectorAll('#confidenceGroup .rating-btn').forEach(b => b.classList.remove('selected'));
-            this.classList.add('selected');
-            responses.confidence = this.dataset.value;
-            document.getElementById('confidenceRating').value = this.dataset.value;
-        });
-    });
-}
+function handleNext() {
+    clearError();
 
-function setupFormSubmit() {
-    document.getElementById('studyForm').addEventListener('submit', function(e) {
-        e.preventDefault();
+    if (phase === 'intro') {
+        phase = 'task';
+        currentTaskIndex = 0;
+        groundTruthShowing = false;
+        hideGtPopout();
+        renderCurrentState();
+        return;
+    }
 
-        Object.keys(responses.answers).forEach(key => {
-            const textarea = document.getElementById(key);
-            if (textarea) {
-                responses.answers[key] = textarea.value;
+    if (phase === 'task') {
+        if (!groundTruthShowing) {
+            // Validate, save, then reveal ground truth
+            const answer = (document.getElementById('mainAnswer')?.value || '').trim();
+            if (!answer) {
+                showError('Please answer the question before submitting.');
+                return;
             }
-        });
 
-        if (!validateResponses()) {
-            return;
+            const ease       = document.getElementById('easeSlider').value;
+            const confidence = document.getElementById('confidenceSlider').value;
+
+            const btn = document.getElementById('nextBtn');
+            btn.disabled    = true;
+            btn.textContent = 'Saving…';
+
+            saveTaskResponse(answer, ease, confidence)
+                .then(() => {
+                    groundTruthShowing = true;
+                    showGtPopout();
+                    updateProgressBar();
+                })
+                .catch(err => {
+                    showError('Could not save response: ' + err.message + '. Please try again.');
+                    btn.disabled    = false;
+                    btn.textContent = 'Submit';
+                });
+        } else {
+            // Advance to next task (or questionnaire)
+            currentTaskIndex++;
+            groundTruthShowing = false;
+            hideGtPopout();
+            phase = currentTaskIndex >= TASKS.length ? 'questionnaire' : 'task';
+            renderCurrentState();
         }
+        return;
+    }
 
-        saveResponses();
+    if (phase === 'questionnaire') {
+        phase = 'complete';
+        hideGtPopout();
+        renderCurrentState();
+        return;
+    }
+}
+
+// ----------------------------------------------------------------
+// Ground truth popout
+// ----------------------------------------------------------------
+
+function showGtPopout() {
+    document.getElementById('gtPopout').classList.add('visible');
+}
+
+function hideGtPopout() {
+    document.getElementById('gtPopout').classList.remove('visible');
+}
+
+// ----------------------------------------------------------------
+// API
+// ----------------------------------------------------------------
+
+async function saveTaskResponse(answer, ease, confidence) {
+    const task      = TASKS[currentTaskIndex];
+    const graphInfo = GRAPH_REGISTRY[task.graph] || {};
+
+    const payload = {
+        sessionId:  SESSION_ID,
+        taskIndex:  currentTaskIndex,
+        taskType:   'comprehension',
+        graphName:  `${graphInfo.name || task.graph} — Dataset ${task.dataset}`,
+        answer:     answer,
+        ease:       ease,
+        confidence: confidence,
+    };
+
+    const res = await fetch('/submit', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
     });
+
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+    return res.json();
 }
 
-function validateResponses() {
-    const errorMsg = document.getElementById('errorMessage');
-    errorMsg.style.display = 'none';
+// ----------------------------------------------------------------
+// Helpers
+// ----------------------------------------------------------------
 
-    for (let key in responses.answers) {
-        if (!responses.answers[key].trim()) {
-            errorMsg.textContent = 'Please answer all open-ended questions.';
-            errorMsg.style.display = 'block';
-            return false;
-        }
-    }
-
-    if (!responses.ease) {
-        errorMsg.textContent = 'Please rate how easy the graph was to understand.';
-        errorMsg.style.display = 'block';
-        return false;
-    }
-
-    if (!responses.confidence) {
-        errorMsg.textContent = 'Please rate your confidence in your answers.';
-        errorMsg.style.display = 'block';
-        return false;
-    }
-
-    return true;
+function esc(str) {
+    return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
 }
 
-async function saveResponses() {
-    const errorMsg = document.getElementById('errorMessage');
-    const submitBtn = document.getElementById('submitBtn');
-
-    errorMsg.style.display = 'none';
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Submitting...';
-
-    try {
-        const response = await fetch('/submit', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(responses)
-        });
-
-        if (!response.ok) {
-            throw new Error('Unable to save your responses right now.');
-        }
-
-        localStorage.setItem('studyResponses', JSON.stringify(responses));
-        showSuccessMessage();
-    } catch (error) {
-        errorMsg.textContent = error.message;
-        errorMsg.style.display = 'block';
-        submitBtn.disabled = false;
-        submitBtn.textContent = 'Submit Responses';
-    }
+function showError(msg) {
+    const el = document.getElementById('errorMessage');
+    el.textContent  = msg;
+    el.style.display = 'block';
 }
 
-function showSuccessMessage() {
-    const successMsg = document.getElementById('successMessage');
-    successMsg.textContent = '✓ Your responses have been saved successfully!';
-    successMsg.style.display = 'block';
-
-    document.getElementById('submitBtn').disabled = true;
-    document.getElementById('submitBtn').textContent = 'Submitted';
-
-    const downloadSection = document.getElementById('downloadSection');
-    if (downloadSection) {
-        downloadSection.style.display = 'block';
-    }
+function clearError() {
+    const el = document.getElementById('errorMessage');
+    el.style.display = 'none';
+    el.textContent   = '';
 }
