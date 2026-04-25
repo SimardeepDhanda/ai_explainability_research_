@@ -2,9 +2,9 @@
 // Study configuration
 // ----------------------------------------------------------------
 
-const QUESTION_TEXT = 'Based on the beeswarm plot, what is your best estimate of the predicted sale price for House 3? How certain does the model appear to be about this prediction?';
+const QUESTION_TEXT = 'question 1';
 
-const TASK_CONTEXT = 'A machine learning model predicts the sale price of houses based on their features. Each dot in the beeswarm plot represents one sampled outcome from the model\'s prediction distribution for a given house.';
+const TASK_CONTEXT = 'A machine learning model predicts the sale price of houses based on their features. Each dot in the plot represents one sampled outcome from the model\'s prediction distribution for a given house.';
 
 // 8 datasets, shuffled fresh each page load
 function shuffleArray(arr) {
