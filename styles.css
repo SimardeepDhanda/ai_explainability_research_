@@ -407,3 +407,240 @@ body {
     color: #2563eb;
     flex-shrink: 0;
 }
+
+/* ================================================================
+   Model info strip
+   ================================================================ */
+.model-info-box {
+    flex-shrink: 0;
+    background: #f8faff;
+    border: 1px solid #dbeafe;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-size: 0.76rem;
+    color: #4b6a9b;
+    line-height: 1.45;
+}
+
+/* ================================================================
+   Q1: dual price inputs
+   ================================================================ */
+.price-input-row {
+    display: flex;
+    gap: 14px;
+    margin-top: 10px;
+}
+
+.price-input-group {
+    flex: 1;
+}
+
+.price-input-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.07em;
+    color: #888;
+    margin-bottom: 5px;
+}
+
+.price-input {
+    width: 100%;
+    padding: 9px 12px;
+    font-size: 0.92rem;
+    font-family: inherit;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.price-input::-webkit-outer-spin-button,
+.price-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+
+.price-input:focus {
+    outline: none;
+    border-color: #2563eb;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.q-keyword     { font-weight: 700; text-decoration: underline; }
+.q-low         { color: #c2410c; }
+.q-high        { color: #4d7c0f; }
+
+/* ================================================================
+   Q2: confidence slider row
+   ================================================================ */
+.confidence-row {
+    margin-top: 10px;
+}
+
+.slider-warning {
+    display: none;
+    margin-top: 6px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #d97706;
+}
+
+/* ================================================================
+   Task wrapper — listing card spans full width above two columns
+   ================================================================ */
+.task-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 10px;
+}
+
+.task-wrapper > .task-layout {
+    flex: 1;
+    min-height: 0;
+}
+
+/* ================================================================
+   Apartment listing card — full-width horizontal strip
+   ================================================================ */
+.listing-card {
+    flex-shrink: 0;
+    background: #ffffff;
+    border: 1px solid #ddd;
+    border-left: 4px solid #2563eb;
+    border-radius: 6px;
+    padding: 14px 20px;
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+.listing-left {
+    flex: 0 0 auto;
+    padding-right: 22px;
+}
+
+.listing-sep {
+    width: 1px;
+    align-self: stretch;
+    background: #e8e8e8;
+    flex-shrink: 0;
+    margin: 0 22px;
+}
+
+.listing-right {
+    flex: 1;
+    min-width: 0;
+}
+
+.listing-eyebrow {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: #2563eb;
+    margin-bottom: 4px;
+}
+
+.listing-location {
+    font-size: 1.18rem;
+    font-weight: 700;
+    color: #111;
+    margin-bottom: 2px;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.listing-specs {
+    font-size: 0.8rem;
+    color: #888;
+    margin-bottom: 2px;
+    white-space: nowrap;
+}
+
+.listing-size {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #333;
+    white-space: nowrap;
+}
+
+.listing-features-label {
+    font-size: 0.65rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.09em;
+    color: #999;
+    margin-bottom: 5px;
+}
+
+.listing-features {
+    font-size: 0.88rem;
+    color: #555;
+    line-height: 1.55;
+}
+
+/* ================================================================
+   Tutorial right column — same as task-right but scrollable
+   ================================================================ */
+.tutorial-right {
+    overflow-y: auto;
+}
+
+/* ================================================================
+   Multiple choice options (tutorial practice question)
+   ================================================================ */
+.mc-options {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    margin-top: 10px;
+}
+
+.mc-option {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #fafafa;
+    font-size: 0.88rem;
+    transition: background 0.12s, border-color 0.12s;
+    user-select: none;
+}
+
+.mc-option:hover {
+    background: #eff6ff;
+    border-color: #93c5fd;
+}
+
+.mc-option.selected {
+    background: #eff6ff;
+    border-color: #2563eb;
+}
+
+.mc-radio {
+    width: 16px;
+    height: 16px;
+    border: 2px solid #ccc;
+    border-radius: 50%;
+    flex-shrink: 0;
+    transition: border-color 0.12s, background 0.12s;
+}
+
+.mc-option.selected .mc-radio {
+    border-color: #2563eb;
+    background: #2563eb;
+    box-shadow: inset 0 0 0 3px #fff;
+}
+
+.mc-feedback {
+    margin-top: 10px;
+    font-size: 0.84rem;
+    font-weight: 600;
+    min-height: 18px;
+}
+
+.mc-correct { color: #16a34a; }
+.mc-wrong   { color: #dc2626; }
