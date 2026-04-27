@@ -152,6 +152,21 @@ const GRAPH_REGISTRY = {
     hop:              { name: 'Hypothetical Outcomes',    ext: 'png' },
 };
 
+const GROUND_TRUTHS = {
+    '1':  201000,
+    '2':  135000,
+    '3':  115000,
+    '4':  134500,
+    '5':   87000,
+    '6':  240000,
+    '7':  201000,
+    '8':  179200,
+    '9':  290000,
+    '10':  95000,
+    '11': 117500,
+    '12': 157500,
+};
+
 const SESSION_ID = (() => {
     const key = 'studySessionId';
     let id = sessionStorage.getItem(key);
@@ -319,15 +334,77 @@ function renderIntro(container) {
     });
 }
 
+const QUESTIONNAIRE_ITEMS = [
+    {
+        id: 'q1',
+        stem: 'Please rate how easy or difficult was it to',
+        bold: 'determine the highest value shown in the chart.',
+        options: ['1 – Very difficult', '2 – Somewhat Difficult', '3 – Neutral', '4 – Somewhat Easy', '5 – Very easy'],
+    },
+    {
+        id: 'q2',
+        stem: 'Please rate how easy or difficult was it to',
+        bold: 'determine the lowest value shown in the chart.',
+        options: ['1 – Very difficult', '2 – Somewhat Difficult', '3 – Neutral', '4 – Somewhat Easy', '5 – Very easy'],
+    },
+    {
+        id: 'q3',
+        stem: 'Please rate how easy or difficult was it to',
+        bold: 'read the value of a data point from the chart.',
+        options: ['1 – Very difficult', '2 – Somewhat Difficult', '3 – Neutral', '4 – Somewhat Easy', '5 – Very easy'],
+    },
+    {
+        id: 'q4',
+        stem: 'Please rate how easy or difficult was it to',
+        bold: 'interpret what confidence interval means on the chart.',
+        options: ['1 – Very difficult', '2 – Somewhat Difficult', '3 – Neutral', '4 – Somewhat Easy', '5 – Very easy'],
+    },
+    {
+        id: 'q5',
+        boldPrefix: 'How often',
+        stem: 'have you used AI or machine learning tools in your daily life (e.g. recommendations, predictions)',
+        options: ['1 – Never', '2 – Rarely', '3 – Sometimes', '4 – Often', '5 – Always'],
+    },
+];
+
 function renderQuestionnaire(container) {
+    const blocksHtml = QUESTIONNAIRE_ITEMS.map((q, qi) => {
+        const stemHtml = q.boldPrefix
+            ? `<strong>${esc(q.boldPrefix)}</strong> ${esc(q.stem)}`
+            : `${esc(q.stem)} <strong>${esc(q.bold)}</strong>`;
+
+        const optsHtml = q.options.map((opt, i) => `
+            <div class="mc-option" data-q="${q.id}" data-value="${i + 1}">
+                <span class="mc-radio"></span>
+                <span class="mc-text">${esc(opt)}</span>
+            </div>
+        `).join('');
+
+        return `
+            <div class="q-block">
+                <div class="q-stem"><span class="q-num">Q${qi + 1}.</span> ${stemHtml}</div>
+                <div class="mc-options q-options">${optsHtml}</div>
+            </div>
+        `;
+    }).join('');
+
     container.innerHTML = `
-        <div class="placeholder-page">
-            <div class="placeholder-content">
-                <h1>Questionnaire</h1>
-                <p class="placeholder-body">[Post-study questionnaire will go here]</p>
+        <div class="questionnaire-page">
+            <div class="questionnaire-content">
+                <div class="questionnaire-heading">Post-Study Questionnaire</div>
+                ${blocksHtml}
             </div>
         </div>
     `;
+
+    document.querySelectorAll('.q-block .mc-option').forEach(el => {
+        el.addEventListener('click', () => {
+            const qId = el.dataset.q;
+            document.querySelectorAll(`.mc-option[data-q="${qId}"]`).forEach(o => o.classList.remove('selected'));
+            el.classList.add('selected');
+            clearError();
+        });
+    });
 }
 
 function renderComplete(container) {
@@ -370,27 +447,41 @@ function renderTask(container, task) {
         : '$—';
 
     container.innerHTML = `
-        <div class="task-wrapper">
-
-        ${renderListingCard(DATASET_LISTINGS[task.dataset])}
-
         <div class="task-layout">
 
-            <!-- Left: graph -->
+            <!-- Left: single card containing listing + model info + graph -->
             <div class="task-left">
                 <div class="graph-panel">
+
+                    <div class="listing-in-panel">
+                        <div class="listing-left">
+                            <div class="listing-eyebrow">Apartment Listing</div>
+                            <div class="listing-location">${esc(listing.location || '')}</div>
+                            <div class="listing-specs">${esc(listing.specs || '')}</div>
+                            <div class="listing-size">${esc(listing.size || '')}</div>
+                        </div>
+                        <div class="listing-sep"></div>
+                        <div class="listing-right">
+                            <div class="listing-features-label">Features</div>
+                            <div class="listing-features">${esc(listing.features || '')}</div>
+                        </div>
+                    </div>
+
+                    <div class="model-info-in-panel">${esc(MODEL_INFO)}</div>
+
                     <div class="section-title">${esc(graphInfo.name)} — Dataset ${esc(task.dataset)}</div>
                     <div class="graph-image-wrapper">
                         <img src="${imageSrc}" alt="${esc(graphInfo.name)}">
                     </div>
+
                 </div>
             </div>
 
-            <!-- Right: 3 questions -->
+            <!-- Right: instruction + 3 questions -->
             <div class="task-right">
 
                 <div class="model-info-box">
-                    ${esc(MODEL_INFO)}
+                    Based on the graph shown on the left, please answer the below three questions.
                 </div>
 
                 <div class="section-box">
@@ -423,14 +514,25 @@ function renderTask(container, task) {
 
                 <div class="question-panel">
                     <div class="section-title">Question 3 of 3 — Listing Decision</div>
-                    <label class="question-label" for="listingDecision">An owner is considering listing this apartment for sale at <strong>${askingFormatted}</strong>. Based on the model's prediction, would you advise listing at this price?</label>
-                    <textarea class="question-textarea" id="listingDecision" placeholder="Type your answer here..."></textarea>
+                    <p class="question-label">An owner is considering listing this apartment for sale at <strong>${askingFormatted}</strong>. Based on the model's prediction, would you advise listing at this price?</p>
+                    <div class="q3-options">
+                        <button class="q3-option" data-value="Yes, list at ${askingFormatted}">Yes, List at ${askingFormatted}</button>
+                        <button class="q3-option" data-value="No, price seems off">No, price seems off</button>
+                        <button class="q3-option" data-value="Not Sure">Not Sure</button>
+                    </div>
                 </div>
 
             </div>
         </div>
-        </div>
     `;
+
+    document.querySelectorAll('.q3-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.q3-option').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            clearError();
+        });
+    });
 
     const confSlider  = document.getElementById('confidenceSlider');
     const confDisplay = document.getElementById('confidenceDisplay');
@@ -500,11 +602,11 @@ function handleNext() {
     if (phase === 'task') {
         if (!groundTruthShowing) {
             // Validate, save, then reveal ground truth
-            const lower        = (document.getElementById('lowerBound')?.value  || '').trim();
-            const upper        = (document.getElementById('upperBound')?.value  || '').trim();
-            const confidence   = document.getElementById('confidenceSlider')?.value || '0';
-            const confTouched  = document.getElementById('confidenceTouched')?.value === '1';
-            const listingAns   = (document.getElementById('listingDecision')?.value || '').trim();
+            const lower       = (document.getElementById('lowerBound')?.value || '').trim();
+            const upper       = (document.getElementById('upperBound')?.value || '').trim();
+            const confidence  = document.getElementById('confidenceSlider')?.value || '0';
+            const confTouched = document.getElementById('confidenceTouched')?.value === '1';
+            const q3Btn       = document.querySelector('.q3-option.selected');
 
             if (!lower || !upper) {
                 showError('Please enter both the lowest and highest likely prices.');
@@ -522,10 +624,11 @@ function handleNext() {
                 showError('Please move the confidence slider before submitting.');
                 return;
             }
-            if (!listingAns) {
-                showError('Please answer the listing decision question.');
+            if (!q3Btn) {
+                showError('Please select an answer for Question 3.');
                 return;
             }
+            const listingAns = q3Btn.dataset.value;
 
             const btn = document.getElementById('nextBtn');
             btn.disabled    = true;
@@ -554,9 +657,31 @@ function handleNext() {
     }
 
     if (phase === 'questionnaire') {
-        phase = 'complete';
-        hideGtPopout();
-        renderCurrentState();
+        const answers = {};
+        for (const q of QUESTIONNAIRE_ITEMS) {
+            const sel = document.querySelector(`.mc-option[data-q="${q.id}"].selected`);
+            if (!sel) {
+                showError('Please answer all questions before continuing.');
+                return;
+            }
+            answers[q.id] = sel.dataset.value;
+        }
+
+        const btn = document.getElementById('nextBtn');
+        btn.disabled    = true;
+        btn.textContent = 'Saving…';
+
+        saveQuestionnaireResponse(answers)
+            .then(() => {
+                phase = 'complete';
+                hideGtPopout();
+                renderCurrentState();
+            })
+            .catch(err => {
+                showError('Could not save responses: ' + err.message + '. Please try again.');
+                btn.disabled    = false;
+                btn.textContent = 'Continue ›';
+            });
         return;
     }
 }
@@ -566,6 +691,13 @@ function handleNext() {
 // ----------------------------------------------------------------
 
 function showGtPopout() {
+    const task    = TASKS[currentTaskIndex];
+    const dataset = task?.dataset;
+    const price   = GROUND_TRUTHS[dataset];
+    document.getElementById('gtDataset').textContent = dataset ? `Dataset ${dataset}` : '';
+    document.getElementById('gtValue').textContent = price
+        ? '$' + price.toLocaleString('en-US')
+        : '—';
     document.getElementById('gtPopout').classList.add('visible');
 }
 
@@ -589,6 +721,27 @@ async function saveTaskResponse(lowerBound, upperBound, confidence, listingDecis
         answer:     JSON.stringify({ lower: lowerBound, upper: upperBound, listingDecision }),
         ease:       '',
         confidence: String(confidence),
+    };
+
+    const res = await fetch('/submit', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+    });
+
+    if (!res.ok) throw new Error(`Server returned ${res.status}`);
+    return res.json();
+}
+
+async function saveQuestionnaireResponse(answers) {
+    const payload = {
+        sessionId:  SESSION_ID,
+        taskIndex:  -1,
+        taskType:   'questionnaire',
+        graphName:  TASKS[0]?.graph || '',
+        answer:     JSON.stringify(answers),
+        ease:       '',
+        confidence: '',
     };
 
     const res = await fetch('/submit', {

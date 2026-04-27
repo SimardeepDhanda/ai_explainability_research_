@@ -91,6 +91,17 @@ body {
     padding: 12px 24px;
 }
 
+.gt-dataset {
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.07em;
+    opacity: 0.55;
+    white-space: nowrap;
+    border-right: 1px solid rgba(255,255,255,0.3);
+    padding-right: 14px;
+}
+
 .gt-label {
     font-size: 0.78rem;
     font-weight: 700;
@@ -147,6 +158,63 @@ body {
 .btn-next:disabled {
     background: #93c5fd;
     cursor: not-allowed;
+}
+
+/* ================================================================
+   Questionnaire page
+   ================================================================ */
+.questionnaire-page {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 2px 0;
+}
+
+.questionnaire-content {
+    background: #ffffff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 28px 40px;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.questionnaire-heading {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 22px;
+    padding-bottom: 14px;
+    border-bottom: 2px solid #e5e7eb;
+}
+
+.q-block {
+    margin-bottom: 22px;
+    padding-bottom: 22px;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.q-block:last-child {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.q-stem {
+    font-size: 0.9rem;
+    line-height: 1.55;
+    color: #222;
+    margin-bottom: 10px;
+}
+
+.q-num {
+    font-weight: 700;
+    color: #555;
+}
+
+.q-options {
+    padding-left: 8px;
+    gap: 5px;
 }
 
 /* ================================================================
@@ -413,12 +481,12 @@ body {
    ================================================================ */
 .model-info-box {
     flex-shrink: 0;
-    background: #f8faff;
-    border: 1px solid #dbeafe;
+    background: #1e40af;
     border-radius: 6px;
-    padding: 8px 14px;
-    font-size: 0.76rem;
-    color: #4b6a9b;
+    padding: 12px 16px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #ffffff;
     line-height: 1.45;
 }
 
@@ -467,6 +535,66 @@ body {
 .q-keyword     { font-weight: 700; text-decoration: underline; }
 .q-low         { color: #c2410c; }
 .q-high        { color: #4d7c0f; }
+
+/* ================================================================
+   Listing + model info inside the left graph panel
+   ================================================================ */
+.listing-in-panel {
+    display: flex;
+    align-items: center;
+    padding-bottom: 10px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.listing-in-panel .listing-location { font-size: 1rem; }
+.listing-in-panel .listing-specs    { font-size: 0.76rem; }
+.listing-in-panel .listing-size     { font-size: 0.8rem; }
+.listing-in-panel .listing-features { font-size: 0.8rem; }
+
+.model-info-in-panel {
+    font-size: 0.8rem;
+    color: #666;
+    line-height: 1.45;
+    margin-bottom: 8px;
+}
+
+/* ================================================================
+   Q3: three-button listing decision
+   ================================================================ */
+.q3-options {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+}
+
+.q3-option {
+    flex: 1;
+    padding: 11px 8px;
+    border: 1.5px solid #d1d5db;
+    border-radius: 6px;
+    background: #fafafa;
+    font-size: 0.86rem;
+    font-weight: 500;
+    color: #555;
+    cursor: pointer;
+    text-align: center;
+    font-family: inherit;
+    transition: border-color 0.12s, background 0.12s, color 0.12s;
+}
+
+.q3-option:hover {
+    border-color: #93c5fd;
+    background: #eff6ff;
+    color: #1e40af;
+}
+
+.q3-option.selected {
+    border-color: #2563eb;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-weight: 700;
+}
 
 /* ================================================================
    Q2: confidence slider row
