@@ -155,7 +155,7 @@ const GRAPH_REGISTRY = {
     confidence:       { name: 'Confidence Zones',         ext: 'png' },
     contour:          { name: 'Contour Plot',             ext: 'png' },
     scatter_rug:      { name: 'Scatter with Rug',         ext: 'png' },
-    hop:              { name: 'Hypothetical Outcomes',    ext: 'png' },
+    hop:              { name: 'Hypothetical Outcomes',    ext: 'gif' },
 };
 
 const GROUND_TRUTHS = {
