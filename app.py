@@ -15,7 +15,7 @@ def get_db():
 
 def init_db():
     with get_db() as conn:
-        # Legacy table kept for any existing data
+        # legacy table kept for any existing data
         conn.execute('''
             CREATE TABLE IF NOT EXISTS responses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,

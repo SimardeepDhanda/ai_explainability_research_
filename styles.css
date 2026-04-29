@@ -490,6 +490,10 @@ body {
     line-height: 1.45;
 }
 
+.model-info-box--orange {
+    background: #c2410c;
+}
+
 /* ================================================================
    Q1: dual price inputs
    ================================================================ */
@@ -712,6 +716,29 @@ body {
    ================================================================ */
 .tutorial-right {
     overflow-y: auto;
+}
+
+/* ================================================================
+   Tutorial page header — "Tutorial 1/2" / "Tutorial 2/2"
+   ================================================================ */
+.tutorial-page-header {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    flex-shrink: 0;
+}
+
+.tutorial-task-wrapper {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    gap: 10px;
+}
+
+.tutorial-task-wrapper > .task-layout {
+    flex: 1;
+    min-height: 0;
 }
 
 /* ================================================================

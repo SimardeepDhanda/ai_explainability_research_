@@ -132,14 +132,20 @@ function shuffleArray(arr) {
     return a;
 }
 
-const TASKS = (() => {
-    const ALL_GRAPHS  = ['beeswarm', 'error_bars', 'violin', 'gradient_density', 'confidence', 'contour', 'scatter_rug', 'hop'];
-    const chosenGraph = ALL_GRAPHS[Math.floor(Math.random() * ALL_GRAPHS.length)];
-    return shuffleArray([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).map(ds => ({
-        graph:   chosenGraph,
-        dataset: String(ds),
-    }));
+const CHOSEN_GRAPH = (() => {
+    const ALL_GRAPHS = ['beeswarm', 'error_bars', 'violin', 'gradient_density', 'confidence', 'contour', 'scatter_rug', 'hop'];
+    const graphParam = new URLSearchParams(window.location.search).get('graph');
+    return (graphParam && ALL_GRAPHS.includes(graphParam))
+        ? graphParam
+        : ALL_GRAPHS[Math.floor(Math.random() * ALL_GRAPHS.length)];
 })();
+
+const TASKS = shuffleArray([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]).map(ds => ({
+    graph:   CHOSEN_GRAPH,
+    dataset: String(ds),
+}));
+
+const TUTORIAL_TASK = { graph: CHOSEN_GRAPH, dataset: '11' };
 
 const GRAPH_REGISTRY = {
     beeswarm:         { name: 'Beeswarm Plot',            ext: 'png' },
@@ -181,7 +187,7 @@ const SESSION_ID = (() => {
 // State
 // ----------------------------------------------------------------
 
-let phase = 'landing';       // 'landing' | 'intro' | 'task' | 'questionnaire' | 'complete'
+let phase = 'landing';       // 'landing' | 'intro' | 'intro2' | 'task' | 'questionnaire' | 'complete'
 let currentTaskIndex = 0;
 let groundTruthShowing = false;
 let introMCCorrect = false;
@@ -207,6 +213,7 @@ function renderCurrentState() {
 
     if (phase === 'landing')        renderLanding(container);
     else if (phase === 'intro')     renderIntro(container);
+    else if (phase === 'intro2')    renderIntro2(container);
     else if (phase === 'task')      renderTask(container, TASKS[currentTaskIndex]);
     else if (phase === 'questionnaire') renderQuestionnaire(container);
     else if (phase === 'complete')  renderComplete(container);
@@ -226,8 +233,12 @@ function updateProgressBar() {
         btn.textContent     = 'Start Tutorial ›';
     } else if (phase === 'intro') {
         fill.style.width    = '0%';
-        label.textContent   = 'Tutorial';
-        btn.textContent     = introMCCorrect ? 'Begin Study ›' : 'Check Answer';
+        label.textContent   = 'Tutorial 1/2';
+        btn.textContent     = introMCCorrect ? 'Continue to Practice Trial ›' : 'Check Answer';
+    } else if (phase === 'intro2') {
+        fill.style.width    = '0%';
+        label.textContent   = 'Tutorial 2/2';
+        btn.textContent     = 'Start the main study ›';
     } else if (phase === 'task') {
         const pct           = Math.round((currentTaskIndex / TASKS.length) * 100);
         fill.style.width    = pct + '%';
@@ -259,7 +270,7 @@ function renderLanding(container) {
 }
 
 function renderIntro(container) {
-    const graphType = TASKS[0].graph;
+    const graphType = CHOSEN_GRAPH;
     const graphInfo = GRAPH_REGISTRY[graphType] || { name: graphType, ext: 'png' };
     const imageSrc  = `images/${graphType}_tutorial.${graphInfo.ext}`;
     const explanation = GRAPH_EXPLANATIONS[graphType] || '';
@@ -274,12 +285,39 @@ function renderIntro(container) {
     container.innerHTML = `
         <div class="task-wrapper">
 
-        ${renderListingCard(DATASET_LISTINGS['tutorial'])}
+        <div class="tutorial-page-header">Tutorial 1/2</div>
+
+        <div class="section-box" style="flex-shrink:0">
+            <div class="section-title">About This Study</div>
+            <div class="section-body">
+                In this study you will see predictions from a machine learning model for monthly apartment rent.
+                Each prediction has two parts — a <strong>point estimate</strong> (the model's best single guess)
+                and a <strong>90% prediction interval</strong> (the range the model considers most likely).
+                <br><br>
+                The interval is not a guarantee and only reflects the model's uncertainty.
+                A well-calibrated prediction interval means the true value falls inside the range 90% of the time.
+            </div>
+        </div>
 
         <div class="task-layout">
 
             <div class="task-left">
                 <div class="graph-panel">
+
+                    <div class="listing-in-panel">
+                        <div class="listing-left">
+                            <div class="listing-eyebrow">Apartment Listing</div>
+                            <div class="listing-location">${esc(DATASET_LISTINGS['tutorial'].location)}</div>
+                            <div class="listing-specs">${esc(DATASET_LISTINGS['tutorial'].specs)}</div>
+                            <div class="listing-size">${esc(DATASET_LISTINGS['tutorial'].size)}</div>
+                        </div>
+                        <div class="listing-sep"></div>
+                        <div class="listing-right">
+                            <div class="listing-features-label">Features</div>
+                            <div class="listing-features">${esc(DATASET_LISTINGS['tutorial'].features)}</div>
+                        </div>
+                    </div>
+
                     <div class="section-title">${esc(graphInfo.name)} — Tutorial</div>
                     <div class="graph-image-wrapper">
                         <img src="${imageSrc}" alt="Tutorial graph">
@@ -288,18 +326,6 @@ function renderIntro(container) {
             </div>
 
             <div class="task-right tutorial-right">
-
-                <div class="section-box" style="flex-shrink:0">
-                    <div class="section-title">About This Study</div>
-                    <div class="section-body">
-                        In this study you will see predictions from a machine learning model for monthly apartment rent.
-                        Each prediction has two parts — a <strong>point estimate</strong> (the model's best single guess)
-                        and a <strong>90% prediction interval</strong> (the range the model considers most likely).
-                        <br><br>
-                        The interval is not a guarantee and only reflects the model's uncertainty.
-                        A well-calibrated prediction interval means the true value falls inside the range 90% of the time.
-                    </div>
-                </div>
 
                 <div class="section-box" style="flex-shrink:0">
                     <div class="section-title">How to Read This Graph</div>
@@ -331,6 +357,118 @@ function renderIntro(container) {
             fb.className = 'mc-feedback';
             clearError();
         });
+    });
+}
+
+function renderIntro2(container) {
+    const task            = TUTORIAL_TASK;
+    const graphInfo       = GRAPH_REGISTRY[task.graph] || { name: task.graph, ext: 'png' };
+    const imageSrc        = `images/${task.graph}_d${task.dataset}.${graphInfo.ext}`;
+    const listing         = DATASET_LISTINGS[task.dataset] || {};
+    const askingFormatted = listing.askingPrice
+        ? '$' + listing.askingPrice.toLocaleString('en-US')
+        : '$—';
+
+    container.innerHTML = `
+        <div class="tutorial-task-wrapper">
+
+            <div class="tutorial-page-header">Tutorial 2/2</div>
+
+            <div class="task-layout">
+
+                <div class="task-left">
+                    <div class="graph-panel">
+
+                        <div class="listing-in-panel">
+                            <div class="listing-left">
+                                <div class="listing-eyebrow">Apartment Listing</div>
+                                <div class="listing-location">${esc(listing.location || '')}</div>
+                                <div class="listing-specs">${esc(listing.specs || '')}</div>
+                                <div class="listing-size">${esc(listing.size || '')}</div>
+                            </div>
+                            <div class="listing-sep"></div>
+                            <div class="listing-right">
+                                <div class="listing-features-label">Features</div>
+                                <div class="listing-features">${esc(listing.features || '')}</div>
+                            </div>
+                        </div>
+
+                        <div class="model-info-in-panel">${esc(MODEL_INFO)}</div>
+
+                        <div class="section-title">${esc(graphInfo.name)} — Dataset ${esc(task.dataset)}</div>
+                        <div class="graph-image-wrapper">
+                            <img src="${imageSrc}" alt="${esc(graphInfo.name)}">
+                        </div>
+
+                    </div>
+                </div>
+
+                <div class="task-right">
+
+                    <div class="model-info-box model-info-box--orange">
+                        Based on the graph shown on the left, please answer the below three questions.
+                    </div>
+
+                    <div class="section-box">
+                        <div class="section-title">Question 1 of 3 — Interval Reading</div>
+                        <p class="question-label">Based on the chart, what is the <span class="q-keyword q-low">lowest</span> and <span class="q-keyword q-high">highest</span> house price the model considers likely? Enter the values that mark the edges of the highlighted region.</p>
+                        <div class="price-input-row">
+                            <div class="price-input-group">
+                                <div class="price-input-label">LOWEST LIKELY PRICE</div>
+                                <input type="number" class="price-input" id="lowerBound" placeholder="e.g. 120000">
+                            </div>
+                            <div class="price-input-group">
+                                <div class="price-input-label">HIGHEST LIKELY PRICE</div>
+                                <input type="number" class="price-input" id="upperBound" placeholder="e.g. 180000">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="section-box">
+                        <div class="section-title">Question 2 of 3 — Confidence in Your Reading</div>
+                        <p class="question-label">How confident are you that your answers accurately reflect what the chart shows? You do not need to consider whether the model is correct, only <strong>how accurately you read the chart</strong>.</p>
+                        <div class="slider-row confidence-row">
+                            <span class="slider-end-label">Not at all confident</span>
+                            <input type="range" class="slider-input" id="confidenceSlider" min="0" max="100" value="0">
+                            <span class="slider-end-label right">Completely confident</span>
+                            <span class="slider-value-display" id="confidenceDisplay">0%</span>
+                        </div>
+                        <input type="hidden" id="confidenceTouched" value="0">
+                        <div class="slider-warning" id="confidenceWarning">You must move the slider to record a response.</div>
+                    </div>
+
+                    <div class="question-panel">
+                        <div class="section-title">Question 3 of 3 — Listing Decision</div>
+                        <p class="question-label">An owner is considering listing this apartment for sale at <strong>${askingFormatted}</strong>. Based on the model's prediction, would you advise listing at this price?</p>
+                        <div class="q3-options">
+                            <button class="q3-option" data-value="Yes, list at ${askingFormatted}">Yes, List at ${askingFormatted}</button>
+                            <button class="q3-option" data-value="No, price seems off">No, price seems off</button>
+                            <button class="q3-option" data-value="Not Sure">Not Sure</button>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.querySelectorAll('.q3-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+            document.querySelectorAll('.q3-option').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+            clearError();
+        });
+    });
+
+    const confSlider  = document.getElementById('confidenceSlider');
+    const confDisplay = document.getElementById('confidenceDisplay');
+    const confTouched = document.getElementById('confidenceTouched');
+    confSlider.addEventListener('input', function () {
+        confDisplay.textContent = this.value + '%';
+        if (confTouched.value === '0') {
+            confTouched.value = '1';
+            document.getElementById('confidenceWarning').style.display = 'none';
+        }
     });
 }
 
@@ -587,15 +725,47 @@ function handleNext() {
                 document.querySelectorAll('.mc-option').forEach(o => o.classList.remove('selected'));
             }
         } else {
-            // Correct answer already confirmed — advance to tasks
-            phase = 'task';
-            currentTaskIndex = 0;
-            groundTruthShowing = false;
+            // Correct answer already confirmed — advance to practice trial
+            phase = 'intro2';
             introMCCorrect = false;
             introMCSelectedIndex = null;
-            hideGtPopout();
             renderCurrentState();
         }
+        return;
+    }
+
+    if (phase === 'intro2') {
+        const lower       = (document.getElementById('lowerBound')?.value || '').trim();
+        const upper       = (document.getElementById('upperBound')?.value || '').trim();
+        const confTouched = document.getElementById('confidenceTouched')?.value === '1';
+        const q3Btn       = document.querySelector('.q3-option.selected');
+
+        if (!lower || !upper) {
+            showError('Please enter both the lowest and highest likely prices.');
+            return;
+        }
+        const lowerNum = parseFloat(lower);
+        const upperNum = parseFloat(upper);
+        if (isNaN(lowerNum) || isNaN(upperNum) || lowerNum >= upperNum) {
+            showError('Enter valid prices with the lowest less than the highest.');
+            return;
+        }
+        if (!confTouched) {
+            const warn = document.getElementById('confidenceWarning');
+            if (warn) warn.style.display = 'block';
+            showError('Please move the confidence slider before continuing.');
+            return;
+        }
+        if (!q3Btn) {
+            showError('Please select an answer for Question 3.');
+            return;
+        }
+
+        phase = 'task';
+        currentTaskIndex = 0;
+        groundTruthShowing = false;
+        hideGtPopout();
+        renderCurrentState();
         return;
     }
 
@@ -686,9 +856,7 @@ function handleNext() {
     }
 }
 
-// ----------------------------------------------------------------
 // Ground truth popout
-// ----------------------------------------------------------------
 
 function showGtPopout() {
     const task    = TASKS[currentTaskIndex];
@@ -705,9 +873,7 @@ function hideGtPopout() {
     document.getElementById('gtPopout').classList.remove('visible');
 }
 
-// ----------------------------------------------------------------
 // API
-// ----------------------------------------------------------------
 
 async function saveTaskResponse(lowerBound, upperBound, confidence, listingDecision) {
     const task      = TASKS[currentTaskIndex];
@@ -754,9 +920,7 @@ async function saveQuestionnaireResponse(answers) {
     return res.json();
 }
 
-// ----------------------------------------------------------------
 // Helpers
-// ----------------------------------------------------------------
 
 function esc(str) {
     return String(str ?? '')
